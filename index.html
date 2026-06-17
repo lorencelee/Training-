@@ -1,0 +1,1297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Holistic Training Tracker</title>
+<style>
+  :root{
+    --bg:#0f1419; --panel:#1a2129; --panel2:#222c37; --line:#2c3947;
+    --txt:#e6edf3; --muted:#8a99a8; --accent:#4cc2ff; --accent2:#7c5cff;
+    --good:#3fb950; --warn:#d29922; --bad:#f85149; --chip:#2d3744;
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg); color:var(--txt); line-height:1.5; -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--accent)}
+  header{
+    position:sticky; top:0; z-index:20; background:linear-gradient(180deg,#0f1419,#0f1419f0);
+    border-bottom:1px solid var(--line); backdrop-filter:blur(6px);
+  }
+  .top{display:flex; align-items:center; gap:14px; padding:14px 18px; max-width:1100px; margin:0 auto; flex-wrap:wrap}
+  .brand{font-weight:800; font-size:18px; letter-spacing:.3px}
+  .brand small{display:block; font-weight:500; color:var(--muted); font-size:11px}
+  .cycle-pill{
+    margin-left:auto; background:var(--panel2); border:1px solid var(--line); border-radius:999px;
+    padding:7px 14px; font-size:13px; color:var(--muted);
+  }
+  .cycle-pill b{color:var(--txt)}
+  nav{display:flex; gap:4px; padding:0 12px 10px; max-width:1100px; margin:0 auto; flex-wrap:wrap}
+  nav button{
+    background:transparent; color:var(--muted); border:none; padding:9px 14px; border-radius:10px;
+    cursor:pointer; font-size:14px; font-weight:600;
+  }
+  nav button:hover{color:var(--txt); background:var(--panel)}
+  nav button.active{color:#06121c; background:var(--accent)}
+  main{max-width:1100px; margin:0 auto; padding:18px}
+  .panel{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:18px; margin-bottom:18px}
+  .panel h2{margin:0 0 4px; font-size:18px}
+  .panel h3{margin:18px 0 8px; font-size:15px; color:var(--accent)}
+  .sub{color:var(--muted); font-size:13px; margin:0 0 14px}
+  .grid{display:grid; gap:14px}
+  .g2{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:1fr 1fr 1fr}
+  @media(max-width:760px){.g2,.g3{grid-template-columns:1fr}}
+  .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+  .spacer{flex:1}
+  label.fld{display:block; font-size:12px; color:var(--muted); margin:0 0 4px; font-weight:600; text-transform:uppercase; letter-spacing:.4px}
+  input,select,textarea{
+    width:100%; background:var(--panel2); border:1px solid var(--line); color:var(--txt);
+    border-radius:10px; padding:10px 12px; font-size:14px; font-family:inherit;
+  }
+  textarea{resize:vertical; min-height:70px}
+  input:focus,select:focus,textarea:focus{outline:none; border-color:var(--accent)}
+  button.btn{
+    background:var(--accent); color:#06121c; border:none; border-radius:10px; padding:10px 16px;
+    font-weight:700; cursor:pointer; font-size:14px;
+  }
+  button.btn:hover{filter:brightness(1.08)}
+  button.ghost{background:var(--panel2); color:var(--txt); border:1px solid var(--line)}
+  button.ghost:hover{border-color:var(--accent)}
+  button.danger{background:var(--bad); color:#fff}
+  button.small{padding:6px 11px; font-size:12px; border-radius:8px}
+  .chip{display:inline-block; background:var(--chip); color:var(--muted); border-radius:999px; padding:3px 10px; font-size:12px; margin:2px 4px 2px 0}
+  .chip.day{background:var(--accent2); color:#fff}
+  /* checklist */
+  .check{
+    display:flex; align-items:flex-start; gap:12px; padding:12px 14px; border:1px solid var(--line);
+    border-radius:12px; background:var(--panel2); margin-bottom:8px; transition:.15s;
+  }
+  .check.done{opacity:.55; background:#16231a; border-color:#244a2c}
+  .check .cb{flex:none; margin-top:2px}
+  .check .cb input{width:22px; height:22px; accent-color:var(--good); cursor:pointer}
+  .check .body{flex:1; min-width:0}
+  .check .title{font-weight:700; font-size:14px}
+  .check .title.strike{text-decoration:line-through}
+  .check .meta{font-size:12px; color:var(--muted); margin-top:2px}
+  .check .meta b{color:var(--txt)}
+  .check .extra{margin-top:10px; display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end}
+  .miniinput{width:90px}
+  .miniinput.w{width:120px}
+  .tag{font-size:10px; text-transform:uppercase; letter-spacing:.5px; padding:2px 7px; border-radius:6px; font-weight:700}
+  .tag.lift{background:#33240d; color:#f0b252}
+  .tag.skill{background:#0d2a33; color:#4cc2ff}
+  .tag.cond{background:#331b1b; color:#f08a8a}
+  .tag.mob{background:#1f1133; color:#c39bff}
+  .tag.recov{background:#102a1a; color:#5fd07a}
+  .tag.team{background:#2a230d; color:#e0c252}
+  .tag.pillar{background:#2a1a0d; color:#e0a262}
+  .tag.plyo{background:#33102a; color:#ff7cc2}
+  .tag.mb{background:#102033; color:#62a2ff}
+  .tag.speed{background:#0d3320; color:#3fe08a}
+  .tag.pap{background:#f85149; color:#fff}
+  .exos-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:8px}
+  @media(max-width:640px){.exos-grid{grid-template-columns:1fr}}
+  .exos-item{display:flex; gap:10px; background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:9px 12px}
+  .exos-item .num{font-weight:800; color:var(--accent); font-size:18px; flex:none; width:22px}
+  .exos-item .t{font-weight:700; font-size:13px}
+  .exos-item .d{font-size:11px; color:var(--muted)}
+  .bm-card{display:flex; align-items:center; gap:12px; background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:10px 12px}
+  .bm-card .nm{font-weight:700; flex:1}
+  .bm-card .best{font-size:20px; font-weight:800; color:var(--accent)}
+  .pap-note{background:#2a0f0f; border-left:3px solid var(--bad); color:#f6b6b2; font-size:12px; padding:6px 10px; border-radius:6px; margin:6px 0}
+  .rest-timer{font-variant-numeric:tabular-nums}
+  .progress{height:10px; background:var(--panel2); border-radius:999px; overflow:hidden; border:1px solid var(--line)}
+  .progress > div{height:100%; background:linear-gradient(90deg,var(--accent),var(--good)); width:0%}
+  .score-big{font-size:46px; font-weight:800; line-height:1}
+  .score-ring{display:flex; align-items:center; gap:18px}
+  .ring{position:relative; width:120px; height:120px; flex:none}
+  .ring svg{transform:rotate(-90deg)}
+  .ring .lbl{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center}
+  .ring .lbl b{font-size:30px}
+  .ring .lbl span{font-size:11px; color:var(--muted)}
+  table{width:100%; border-collapse:collapse; font-size:13px}
+  th,td{text-align:left; padding:8px 10px; border-bottom:1px solid var(--line)}
+  th{color:var(--muted); font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.4px; position:sticky; top:0}
+  tr:hover td{background:var(--panel2)}
+  .bar{height:7px; background:var(--accent); border-radius:4px}
+  .barwrap{background:var(--panel2); border-radius:4px; overflow:hidden; min-width:60px}
+  .muted{color:var(--muted)}
+  .right{text-align:right}
+  .center{text-align:center}
+  .pos{color:var(--good)} .neg{color:var(--bad)}
+  .exblock{border:1px solid var(--line); border-radius:12px; margin-bottom:12px; overflow:hidden}
+  .exblock > .head{background:var(--panel2); padding:10px 14px; font-weight:700; display:flex; align-items:center; gap:10px}
+  .exrow{padding:10px 14px; border-top:1px solid var(--line); display:flex; gap:12px; align-items:flex-start; flex-wrap:wrap}
+  .exrow .name{font-weight:600; flex:1 1 200px}
+  .exrow .spec{color:var(--muted); font-size:13px; flex:0 0 auto}
+  .exrow .cue{flex:1 1 100%; font-size:12px; color:var(--muted); font-style:italic}
+  .stat-in{display:flex; flex-direction:column; gap:4px}
+  .stat-in label{font-size:11px; color:var(--muted); font-weight:600}
+  .stat-in input{width:100%}
+  .toast{
+    position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--good); color:#06121c;
+    padding:12px 22px; border-radius:10px; font-weight:700; z-index:100; opacity:0; transition:.25s; pointer-events:none;
+  }
+  .toast.show{opacity:1}
+  .datebar{display:flex; align-items:center; gap:10px; margin-bottom:16px}
+  .datebar input{width:auto}
+  .kpi{background:var(--panel2); border:1px solid var(--line); border-radius:12px; padding:14px}
+  .kpi .v{font-size:26px; font-weight:800}
+  .kpi .k{font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.4px}
+  details.prog{border:1px solid var(--line); border-radius:12px; margin-bottom:10px; background:var(--panel2)}
+  details.prog > summary{padding:12px 14px; cursor:pointer; font-weight:700; list-style:none}
+  details.prog > summary::-webkit-details-marker{display:none}
+  details.prog > summary:before{content:"▸ "; color:var(--accent)}
+  details.prog[open] > summary:before{content:"▾ "}
+  details.prog .inner{padding:0 14px 12px}
+  .hint{font-size:12px; color:var(--muted); background:var(--panel2); border-left:3px solid var(--accent); padding:8px 12px; border-radius:6px; margin:8px 0}
+  .floatbar{position:fixed; right:18px; bottom:18px; display:flex; flex-direction:column; gap:8px; z-index:30}
+  .timerbox{
+    background:var(--accent2); color:#fff; border-radius:14px; padding:14px 18px; box-shadow:0 8px 24px #0008;
+    display:none; align-items:center; gap:14px; min-width:200px;
+  }
+  .timerbox.show{display:flex}
+  .timerbox .t{font-size:34px; font-weight:800; font-variant-numeric:tabular-nums}
+  .legend{display:flex; gap:14px; flex-wrap:wrap; font-size:12px; color:var(--muted); margin-bottom:8px}
+  .legend span:before{content:"●"; margin-right:5px}
+</style>
+</head>
+<body>
+<header>
+  <div class="top">
+    <div class="brand">🏀 Holistic Training Tracker<small>Local-only · all data stays in this browser</small></div>
+    <div class="cycle-pill" id="cyclePill">No cycle yet</div>
+  </div>
+  <nav id="nav">
+    <button data-tab="today" class="active">Today</button>
+    <button data-tab="program">Program</button>
+    <button data-tab="gameday">Game Day</button>
+    <button data-tab="history">History</button>
+    <button data-tab="settings">Settings</button>
+  </nav>
+</header>
+<main id="main"></main>
+
+<div class="floatbar">
+  <div class="timerbox" id="timerBox">
+    <div>
+      <div style="font-size:11px;opacity:.85" id="timerLabel">Rest</div>
+      <div class="t" id="timerVal">0:00</div>
+    </div>
+    <button class="ghost small" onclick="addRest(15)">+15s</button>
+    <button class="ghost small" onclick="stopTimer()">Stop</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   HOLISTIC TRAINING TRACKER  —  single-file, localStorage app
+   ============================================================ */
+
+const LS_KEY = "holisticTrainingTracker_v2";
+const todayISO = () => new Date().toISOString().slice(0,10);
+
+/* ---------- DEFAULT PROGRAM: EXOS IN-SEASON LACROSSE BLOCK ----------
+   A 4-week mesocycle (true week-to-week variation, not one repeated week).
+   Built for an advanced in-season lacrosse midfielder.
+   - program.weeks = [ week0..week3 ], each = 7 days ordered Sun..Sat (index 0..6 = JS getDay()).
+   - EXOS 8-component session sequence on all strength days.
+   - PAP contrast pairs on benchmark lifts. Benchmark variations wave across weeks.
+   - Week 4 = deload + true 1RM testing on the 5 benchmarks.
+   Fully editable in Settings. restSec = suggested break/rest after that item.
+*/
+function defaultProgram(){
+  // ---- Morning skill session (every day, adapts by intensity) ----
+  function morningSkill(level){
+    if(level==="activation") return { name:"AM · Game-Day Skill Activation", type:"skill", items:[
+      {ex:"Wall Ball — Right Hand", spec:"20 reps", restSec:0, wall:"R", cue:"Light, sharp hands — prime the pattern, do NOT fatigue."},
+      {ex:"Wall Ball — Left Hand", spec:"20 reps", restSec:0, wall:"L", cue:"Match the right — quick stick release."},
+      {ex:"Sharp shots", spec:"10 shots", restSec:0, cue:"Game-speed, pick corners. Stop while crisp (40 WB + 10 shots total)."},
+    ]};
+    if(level==="light") return { name:"AM · Light Skill (Fri)", type:"skill", items:[
+      {ex:"Wall Ball — Right Hand", spec:"50 reps", restSec:0, wall:"R", cue:"Easy rhythm, clean catches — feel, not grind."},
+      {ex:"Wall Ball — Left Hand", spec:"50 reps", restSec:0, wall:"L", cue:"Off-hand focus."},
+      {ex:"Shooting mechanics", spec:"15 reps", restSec:0, cue:"Slow & perfect — overhand form only."},
+    ]};
+    return { name:"AM · Full Skill Session (15–20 min)", type:"skill", items:[
+      {ex:"Wall Ball — Right Hand", spec:"100 reps", restSec:0, wall:"R", cue:"Mix quick-stick, behind-the-back, face-dodge, split — eyes up."},
+      {ex:"Wall Ball — Left Hand", spec:"100 reps", restSec:0, wall:"L", cue:"EQUAL volume off-hand — biggest skill ROI for a middie."},
+      {ex:"Shooting mechanics", spec:"25 reps", restSec:0, cue:"Overhand + sidearm; drive hips, top-hand snap, follow through."},
+      {ex:"Dodge footwork", spec:"5 min", restSec:0, cue:"Split / roll / face dodge — change of pace, sell the fake."},
+    ]};
+  }
+  // ---- Shared EXOS prep blocks ----
+  function pillarPrep(){ return { name:"1 · Pillar Prep", type:"pillar", items:[
+    {ex:"Foam roll", spec:"4–5 min", restSec:0, cue:"Quads, glutes, t-spine, lats, calves — 20–30s each tender spot."},
+    {ex:"Glute bridge (activation)", spec:"2×12", restSec:30, cue:"Squeeze glutes, ribs down, posterior tilt."},
+    {ex:"Banded lateral walk", spec:"2×12/side", restSec:30, cue:"Hips level, knees out, stay low."},
+    {ex:"Dead bug", spec:"2×8/side", restSec:30, cue:"Core braced, low back glued to floor."},
+  ]};}
+  function movementPrep(focus){ return { name:"2 · Movement Prep", type:"mob", items:[
+    {ex:"Dynamic warm-up", spec:"6–8 min", restSec:0, cue:"Leg swings, world's greatest stretch, inchworm, hip airplane."},
+    focus==="lower"
+      ? {ex:"Lower-body ramp", spec:"2 rounds", restSec:0, cue:"Spiderman + reach, ankle rocks, walking lunge, A-skip."}
+      : {ex:"Upper-body ramp", spec:"2 rounds", restSec:0, cue:"Band pull-apart, shoulder CARs, scap push-up, wall slides."},
+  ]};}
+  function regen(extra){ return { name:"8 · Regeneration", type:"recov", items: (extra||[]).concat([
+    {ex:"Static stretch", spec:"5–6 min", restSec:0, cue:"Hold 30s — hips, hams, calves, pecs, lats."},
+    {ex:"Diaphragmatic breathing", spec:"3 min", restSec:0, cue:"4s in / 6s out — shift to parasympathetic, aid recovery."},
+  ]) };}
+
+  // ---- Benchmark waves (variation week-to-week; week index 0..3) ----
+  // ex name stays the benchmark base so progression charts track continuously.
+  const squatWave = [
+    {spec:"Back Squat (full depth) · 4×4 @ RPE 7",      cue:"Full depth, controlled. Leave ~3 reps in reserve — reintroduction week."},
+    {spec:"Box Squat · 4×3 @ RPE 8",                    cue:"VARIATION: sit to box, pause, explode — starting strength & depth consistency."},
+    {spec:"Back Squat (full) · 5×3 @ RPE 8–9",          cue:"Heaviest working sets of the block. Optional top-end: 2× quarter-squat overload @ ~110% after."},
+    {spec:"1RM TEST · ramp to a true single",           cue:"TEST WEEK. Warm up in singles, find today's true 1RM, log it. This seeds next cycle's loads.", test:true},
+  ];
+  const trapWave = [
+    {spec:"Trap-Bar Deadlift (full range) · 4×4 @ RPE 7", cue:"Full ROM from low handles. Flat back, push floor away."},
+    {spec:"Trap-Bar Deadlift (deficit) · 4×3 @ RPE 8",    cue:"VARIATION: stand on 25–45mm plate — extra range builds off-the-floor strength."},
+    {spec:"Trap-Bar Deadlift (above-knee block) · 4×3 @ RPE 8–9", cue:"VARIATION: reduced ROM (rack/blocks) to overload lockout & grip."},
+    {spec:"1RM TEST · full range, ramp to a single",      cue:"TEST WEEK. Establish a true trap-bar 1RM, log it.", test:true},
+  ];
+  const benchWave = [
+    {spec:"Bench Press · 4×5 @ RPE 7", cue:"Leg drive, bar to mid-chest, controlled."},
+    {spec:"Bench Press · 4×4 @ RPE 8", cue:"Heavier — tight upper back, explode off chest."},
+    {spec:"Bench Press · 5×3 @ RPE 8–9", cue:"Top working load of the block."},
+    {spec:"1RM TEST · ramp to a true single", cue:"TEST WEEK. Log a true bench 1RM (use a spotter).", test:true},
+  ];
+  const ohpWave = [
+    {spec:"Barbell Shoulder Press · 4×5 @ RPE 7", cue:"Ribs down, glutes tight, bar over mid-foot at lockout."},
+    {spec:"Barbell Shoulder Press · 4×4 @ RPE 8", cue:"Strict press — no leg drive."},
+    {spec:"Barbell Shoulder Press · 5×3 @ RPE 8–9", cue:"Heaviest strict pressing of the block."},
+    {spec:"1RM TEST · strict, ramp to a single", cue:"TEST WEEK. Log a true strict-press 1RM.", test:true},
+  ];
+  const pullMonWave = [
+    {spec:"Weighted Pull-up · 4×6", cue:"Heavy/strength focus. Full hang to chest, controlled negative."},
+    {spec:"Weighted Pull-up · 4×5", cue:"Add load vs last week if all reps were clean (+2.5kg)."},
+    {spec:"Weighted Pull-up · 5×4", cue:"Heaviest weighted sets of the block."},
+    {spec:"1RM TEST · max added load × 1", cue:"TEST WEEK. Find max added weight for a single, log it.", test:true},
+  ];
+  const pullWedWave = [
+    {spec:"Weighted Pull-up · Tempo 3×8 (3s down)", cue:"Volume/control day — different stimulus from Monday's heavy pulls."},
+    {spec:"Weighted Pull-up · 3×8", cue:"Moderate load, full range, squeeze at top."},
+    {spec:"Weighted Pull-up · 4×6", cue:"Bit more load, keep tempo honest."},
+    {spec:"Pull-up · Deload 2×6 bodyweight", cue:"TEST WEEK deload — keep it crisp, no grinding."},
+  ];
+  // PAP contrast partners (paired AFTER the heavy benchmark set, 3–5 min rest)
+  const squatPAP = ["Broad Jump · 4×3","Box Jump · 4×3","Tuck Jump · 4×3", null];
+  const benchPAP = ["Plyo (clap) Push-up · 4×3","Explosive Push-up · 4×4","Band-Resisted Explosive Push-up · 4×3", null];
+  const ohpPAP   = ["MB Overhead Throw (for height) · 4×3","Plyo Push-up · 4×3","MB Push-Press Throw · 4×3", null];
+  // Plyometric block (component 3) wave
+  const plyoLower = [
+    {ex:"Box Jump", spec:"4×3", restSec:90, cue:"Max height, soft landing, full reset between reps."},
+    {ex:"Hurdle Hops", spec:"4×4", restSec:90, cue:"Stiff ankles, minimal ground contact, rhythmic."},
+    {ex:"Depth Jump", spec:"4×2", restSec:120, cue:"Reactive — drop, then rebound as fast as possible."},
+    {ex:"Countermovement Jump", spec:"3×3 submax", restSec:90, cue:"Deload — crisp & springy, not maximal."},
+  ];
+  const plyoUpper = [
+    {ex:"Clap Push-up", spec:"3×3", restSec:75, cue:"Explosive off the floor, brief ground contact."},
+    {ex:"Plyo Push-up (elevated)", spec:"3×4", restSec:75, cue:"Push hard enough to leave the floor."},
+    {ex:"Depth Push-up", spec:"3×3", restSec:90, cue:"Drop from low boxes, absorb, fire back — reactive upper power."},
+    {ex:"Plyo Push-up", spec:"2×3 submax", restSec:75, cue:"Deload — keep it snappy, low volume."},
+  ];
+
+  const dl = i=>i<3; // helper: not the test week (weeks 0-2 are loading)
+
+  // ---- Day builders (w = week index 0..3) ----
+  function sunday(w){
+    const sq=squatWave[w], tb=trapWave[w], pap=squatPAP[w];
+    const strength=[
+      {ex:"Back Squat", spec:sq.spec, restSec:210, load:true, cue:(pap?"PAP PAIR ▸ rest 3–4 min after each heavy set, then do the paired jump. ":"")+sq.cue, test:sq.test},
+    ];
+    if(pap) strength.push({ex:"Broad/Box Jump (PAP)", spec:pap, restSec:120, cue:"Contrast pair — 3–4 min after the squat set, MAX intent, then back to squat."});
+    strength.push({ex:"Trap-Bar Deadlift", spec:tb.spec, restSec:180, load:true, cue:tb.cue, test:tb.test});
+    if(dl(w)){
+      strength.push({ex:"Hip Thrust", spec:(w===2?"3×6–8 (heavy)":"3×8–10"), restSec:90, load:true, cue:"Time-tested glute/hip power builder — pause & squeeze 1s at lockout."});
+      strength.push({ex:"Bulgarian Split Squat", spec:"2×8/leg", restSec:75, load:true, cue:"Single-leg strength & stability — tall torso, control the descent."});
+      strength.push({ex:"Standing Calf Raise", spec:"3×12", restSec:45, load:true, cue:"Full stretch + 1s pause at top — Achilles stiffness for sprinting."});
+      strength.push({ex:"Hanging Leg Raise", spec:"3×12", restSec:45, cue:"No swing, posterior pelvic tilt — anterior core."});
+    } else {
+      strength.push({ex:"Hip Thrust", spec:"2×8 (light)", restSec:60, load:true, cue:"Deload — keep glutes switched on, no grinding."});
+    }
+    return { day:"Sun", focus:"Lower-Body Power"+(w===3?" · DELOAD + TEST":""), blocks:[
+      morningSkill("full"),
+      pillarPrep(),
+      movementPrep("lower"),
+      { name:"3 · Plyometrics", type:"plyo", items:[ plyoLower[w] ]},
+      { name:"4 · Medicine Ball", type:"mb", items:[
+        {ex:"MB Overhead Slam", spec:(dl(w)?"4×4":"3×3"), restSec:60, cue:"Full extension then violent slam — total-body triple-extension power."},
+        {ex:"MB Rotational Throw", spec:(dl(w)?"3×4/side":"2×3/side"), restSec:60, cue:"Hips lead — directly transfers to shot power."},
+      ]},
+      { name:"6 · Strength & Power", type:"lift", items: strength },
+      { name:"7 · Energy System (optional, in-season)", type:"cond", items:[
+        {ex:"Tempo runs / bike", spec:dl(w)?"6×15s @ 75% / 45s easy":"skip if fatigued", restSec:45, cue:"Aerobic flush only — keep legs fresh. Skip if game week is heavy."},
+      ]},
+      regen([{ex:"Hip flexor + adductor stretch", spec:"60s/side", restSec:0, cue:"Open hips after squatting."}]),
+    ]};
+  }
+  function monday(w){
+    const bn=benchWave[w], pl=pullMonWave[w], pap=benchPAP[w];
+    const strength=[
+      {ex:"Bench Press", spec:bn.spec, restSec:200, load:true, cue:(pap?"PAP PAIR ▸ rest 3–4 min, then explosive push. ":"")+bn.cue, test:bn.test},
+    ];
+    if(pap) strength.push({ex:"Explosive Push-up (PAP)", spec:pap, restSec:120, cue:"Contrast pair after the heavy bench set — max speed off the floor."});
+    strength.push({ex:"Weighted Pull-up", spec:pl.spec, restSec:150, load:true, cue:pl.cue, test:pl.test});
+    if(dl(w)){
+      strength.push({ex:"DB Incline Bench Press", spec:"3×8", restSec:75, load:true, cue:"Upper-chest/shoulder — controlled, full stretch."});
+      strength.push({ex:"1-Arm DB Row", spec:"3×10/side", restSec:60, load:true, cue:"Big back volume — drive elbow to hip, squeeze."});
+      strength.push({ex:"Face Pull (band)", spec:"3×15", restSec:45, cue:"Rear delts + shoulder health — thumbs back, pause."});
+      strength.push({ex:"Pallof Press (band)", spec:"3×10/side", restSec:45, cue:"Anti-rotation core (minimal lower) — slow, resist the twist."});
+    } else {
+      strength.push({ex:"1-Arm DB Row", spec:"2×8/side", restSec:60, load:true, cue:"Deload back volume."});
+      strength.push({ex:"Pallof Press (band)", spec:"2×10/side", restSec:45, cue:"Keep core engaged, easy day."});
+    }
+    return { day:"Mon", focus:"Upper-Body A — Bench + Pulls"+(w===3?" · TEST":""), blocks:[
+      morningSkill("full"),
+      pillarPrep(),
+      movementPrep("upper"),
+      { name:"3 · Plyometrics (upper)", type:"plyo", items:[ plyoUpper[w] ]},
+      { name:"4 · Medicine Ball", type:"mb", items:[
+        {ex:"MB Rotational Throw", spec:(dl(w)?"4×4/side":"2×3/side"), restSec:60, cue:"PRIORITY — explosive hip rotation = shooting power. Throw HARD."},
+        {ex:"MB Chest Pass (explosive)", spec:(dl(w)?"4×4":"2×3"), restSec:60, cue:"Horizontal pushing power — full extension, catch & re-fire."},
+      ]},
+      { name:"6 · Strength & Power", type:"lift", items: strength },
+      regen(),
+      { name:"Note", type:"recov", items:[{ex:"Minimal lower body today", spec:"by design", restSec:0, cue:"Legs kept fresh for Tuesday practice + speed work."}]},
+    ]};
+  }
+  function tuesday(w){
+    return { day:"Tue", focus:"Practice + Speed (PM)", blocks:[
+      morningSkill("full"),
+      pillarPrep(),
+      movementPrep("lower"),
+      { name:"Team Practice (PM, moderate)", type:"team", items:[
+        {ex:"Team practice", spec:"evening session", restSec:0, cue:"Quality reps — moderate intensity. Log focus & how you felt below."},
+      ]},
+      { name:"5 · Movement / Speed (20 min, after practice)", type:"speed", items:[
+        {ex:"Acceleration sprints", spec:(dl(w)?"6×20m":"4×20m"), restSec:90, cue:"Push the ground back, gradual rise, full recovery between reps."},
+        {ex:"Flying 10s", spec:(dl(w)?"4×10m (20m build-in)":"3×10m"), restSec:120, cue:"Top-speed mechanics — tall, relaxed, full recovery."},
+        {ex:"Lateral shuffles", spec:"4×10m/side", restSec:60, cue:"Low hips, no heel-click, push off the outside foot."},
+      ]},
+      regen(),
+    ]};
+  }
+  function wednesday(w){
+    const oh=ohpWave[w], pl=pullWedWave[w], pap=ohpPAP[w];
+    const strength=[
+      {ex:"Barbell Shoulder Press", spec:oh.spec, restSec:200, load:true, cue:(pap?"PAP PAIR ▸ rest 3–4 min, then explosive throw. ":"")+oh.cue, test:oh.test},
+    ];
+    if(pap) strength.push({ex:"MB Overhead/Push Throw (PAP)", spec:pap, restSec:120, cue:"Contrast pair after the heavy press — throw for max height/speed."});
+    strength.push({ex:"Weighted Pull-up", spec:pl.spec, restSec:120, load:!/bodyweight/.test(pl.spec), cue:pl.cue, test:pl.test});
+    if(dl(w)){
+      strength.push({ex:"Landmine Press", spec:"3×8/side", restSec:60, load:true, cue:"Shoulder-friendly vertical-ish press (barbell in corner) — brace, press up & in."});
+      strength.push({ex:"DB Lateral Raise", spec:"3×12", restSec:45, load:true, cue:"Side-delt width — soft elbows, lead with elbows, no swing."});
+      strength.push({ex:"Bent-Over Barbell Row", spec:"3×8", restSec:60, load:true, cue:"Horizontal back volume — flat back, pull to lower ribs."});
+      strength.push({ex:"Rear-Delt Band Pull-apart", spec:"3×15", restSec:30, cue:"Posture & shoulder health."});
+      strength.push({ex:"Ab Wheel / Plank", spec:"3×8 / 3×45s", restSec:45, cue:"Anti-extension core (minimal lower)."});
+    } else {
+      strength.push({ex:"DB Lateral Raise", spec:"2×12", restSec:45, load:true, cue:"Deload — light pump only."});
+      strength.push({ex:"Plank", spec:"3×30s", restSec:30, cue:"Easy core."});
+    }
+    return { day:"Wed", focus:"Upper-Body B — Press + Pulls"+(w===3?" · TEST":""), blocks:[
+      morningSkill("full"),
+      pillarPrep(),
+      movementPrep("upper"),
+      { name:"3 · Plyometrics (upper)", type:"plyo", items:[ plyoUpper[w] ]},
+      { name:"4 · Medicine Ball", type:"mb", items:[
+        {ex:"MB Overhead Slam", spec:(dl(w)?"4×5":"2×3"), restSec:60, cue:"Lat & core power — full overhead reach to violent slam."},
+        {ex:"MB Rotational Throw", spec:(dl(w)?"4×4/side":"2×3/side"), restSec:60, cue:"Extra rotational volume — shot-power priority for a middie."},
+      ]},
+      { name:"6 · Strength & Power", type:"lift", items: strength },
+      regen(),
+      { name:"Note", type:"recov", items:[{ex:"Minimal lower body today", spec:"by design", restSec:0, cue:"Legs kept fresh for Thursday practice + speed work."}]},
+    ]};
+  }
+  function thursday(w){
+    return { day:"Thu", focus:"Practice + Speed/Agility (PM)", blocks:[
+      morningSkill("full"),
+      pillarPrep(),
+      movementPrep("lower"),
+      { name:"Team Practice (PM, moderate)", type:"team", items:[
+        {ex:"Team practice", spec:"evening session", restSec:0, cue:"Moderate intensity — sharp & engaged. Log focus & feel below."},
+      ]},
+      { name:"5 · Movement / Speed — Agility (20 min, after practice)", type:"speed", items:[
+        {ex:"Pro-agility (5-10-5) shuttle", spec:(dl(w)?"6 reps":"4 reps"), restSec:90, cue:"Sharp hips, plant the outside foot, stay low through the turn."},
+        {ex:"Band-resisted sprints", spec:(dl(w)?"6×15m":"4×15m"), restSec:90, cue:"Acceleration mechanics vs resistance — drive & explode."},
+        {ex:"Backpedal-to-sprint transitions", spec:(dl(w)?"6 reps":"4 reps"), restSec:75, cue:"React, flip the hips, accelerate — game-transferable transition speed."},
+      ]},
+      regen(),
+    ]};
+  }
+  function friday(w){
+    return { day:"Fri", focus:"Active Recovery", blocks:[
+      morningSkill("light"),
+      { name:"Active Recovery", type:"recov", items:[
+        {ex:"Light jog", spec:"15–20 min Zone 1", restSec:0, cue:"Easy, nasal breathing — promote blood flow & flush."},
+        {ex:"Mobility flow", spec:"15 min", restSec:0, cue:"Hips, t-spine, ankles, shoulders — move through full ranges."},
+        {ex:"Strides", spec:"4×60m @ ~70%", restSec:60, cue:"Smooth build-ups — stay relaxed, prime the CNS for tomorrow's game."},
+        {ex:"Foam roll", spec:"10 min", restSec:0, cue:"Full body — flush tissues, prep for game day."},
+      ]},
+    ]};
+  }
+  function saturday(w){
+    return { day:"Sat", focus:"GAME DAY", blocks:[
+      morningSkill("activation"),
+      { name:"Pre-Game Dynamic Warm-up", type:"mob", items:[
+        {ex:"RAMP dynamic warm-up", spec:"12–15 min", restSec:0, cue:"Raise · Activate · Mobilise · Potentiate — finish with 3–4 strides + 5 sharp shots."},
+      ]},
+      { name:"GAME", type:"team", items:[
+        {ex:"Game", spec:"compete", restSec:0, cue:"Leave it out there. Log your stat line & reflections on the Game Day tab."},
+      ]},
+      { name:"Post-Game Regeneration", type:"recov", items:[
+        {ex:"Static stretch", spec:"10 min", restSec:0, cue:"Hold 30s — calves, hips, hams, shoulders."},
+        {ex:"Recovery nutrition", spec:"within 60 min", restSec:0, cue:"~0.3g/kg protein + ~1g/kg carbs + rehydrate (add electrolytes)."},
+        {ex:"Cooldown spin / walk", spec:"8–10 min", restSec:0, cue:"Easy flush to clear the legs."},
+      ]},
+    ]};
+  }
+
+  function buildWeeks(){
+    const out=[];
+    for(let w=0; w<4; w++){
+      out.push([ sunday(w), monday(w), tuesday(w), wednesday(w), thursday(w), friday(w), saturday(w) ]);
+    }
+    return out;
+  }
+
+  return {
+    name: "Lacrosse In-Season — EXOS Block A",
+    style: "EXOS",
+    cycleWeeks: 4,
+    progressionUpperKg: 2.5,
+    progressionLowerKg: 5,
+    progressionPct: 2.5,
+    caffeineLimitMg: 200,
+    sleepTargetH: 8.5,
+    bedtimeTarget: "22:45",
+    goals: ["1 · Shooting power","2 · Sprint speed & acceleration","3 · Strength benchmarks","4 · Overall athletic development"],
+    exosSequence: [
+      ["Pillar Prep","Foam roll + glute/core activation — prep the kinetic chain"],
+      ["Movement Prep","Dynamic warm-up — mobilise & raise core temp"],
+      ["Plyometrics","Elastic/reactive jumps — prime the CNS for power"],
+      ["Medicine Ball","Explosive throws — rotational power that feeds the shot"],
+      ["Movement / Speed","Sprint, acceleration & change-of-direction"],
+      ["Strength & Power","Main benchmark lifts + PAP contrast pairs"],
+      ["Energy System Dev","Conditioning — kept minimal in-season"],
+      ["Regeneration","Cooldown, static stretch, breathing, nutrition"],
+    ],
+    benchmarks: [
+      {name:"Back Squat", group:"Lower", prog:"+5kg when all sets clean"},
+      {name:"Trap-Bar Deadlift", group:"Lower", prog:"+5kg when all sets clean"},
+      {name:"Bench Press", group:"Upper", prog:"+2.5kg when all sets clean"},
+      {name:"Barbell Shoulder Press", group:"Upper", prog:"+2.5kg when all sets clean"},
+      {name:"Weighted Pull-up", group:"Upper", prog:"+2.5kg added load when all sets clean"},
+    ],
+    principles: [
+      "EXOS 8-component sequence on every strength day (Sun/Mon/Wed).",
+      "PAP contrast pairs on benchmark lifts: heavy set → explosive movement, 3–5 min rest.",
+      "In-season volume capped (<12–15 hard sets per muscle group per week).",
+      "Progressive overload: +2.5kg upper / +5kg lower when all sets feel clean.",
+      "Test true 1RM on the 5 benchmarks every 4–6 weeks (Week 4 = test week), not weekly.",
+      "Morning skill adapts by day: full (Sun–Thu), light (Fri), activation only (Sat).",
+      "Mon & Wed keep lower body minimal so legs stay fresh for Tue/Thu practice.",
+      "Week 1 reintroduce · Week 2 build · Week 3 peak · Week 4 deload + test.",
+    ],
+    // Lacrosse stat fields (editable)
+    gameStats: ["Minutes","Goals","Assists","Points","Shots","Shots on Goal","Ground Balls","Caused Turnovers","Turnovers","Faceoffs Won","Faceoffs Lost","Penalty Min"],
+    // daily lifestyle checklist items (apply every day)
+    recovery: [
+      {key:"hydrate", label:"Hydration — 3L+ water (add electrolytes on game days)"},
+      {key:"protein", label:"Protein target hit (1.8–2.2 g/kg)"},
+      {key:"mobility", label:"Evening mobility / foam roll (10 min)"},
+      {key:"sleep_routine", label:"Wind-down routine — screens off 30 min before bed"},
+    ],
+    weeks: buildWeeks(),
+  };
+}
+
+/* ---------- STATE ---------- */
+let DB = load();
+function load(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(raw) return JSON.parse(raw);
+  }catch(e){}
+  const fresh = {
+    program: defaultProgram(),
+    cycles: [],          // {id, name, startDate, weeks, progressionPct}
+    logs: {},            // date -> log object
+    settings: {},
+  };
+  return fresh;
+}
+function save(){ localStorage.setItem(LS_KEY, JSON.stringify(DB)); }
+
+/* ---------- CYCLE HELPERS ---------- */
+function activeCycle(){
+  if(!DB.cycles.length) return null;
+  // most recent cycle whose start <= today; else the latest
+  const t = todayISO();
+  const started = DB.cycles.filter(c=>c.startDate<=t).sort((a,b)=>a.startDate<b.startDate?1:-1);
+  return started[0] || DB.cycles[DB.cycles.length-1];
+}
+function startCycle(startDate){
+  const p = DB.program;
+  const n = DB.cycles.length + 1;
+  const c = {
+    id: "c"+Date.now(),
+    name: p.name + " — Cycle " + n,
+    startDate: startDate || todayISO(),
+    weeks: p.weeks.length,
+    progressionPct: p.progressionPct,
+    cycleNumber: n,
+  };
+  DB.cycles.push(c);
+  save();
+  return c;
+}
+// Maps a date to {cycle, weekNum, weekIdx, dayIndex(0=Sun..6=Sat), dayName, dayTpl}.
+// Weeks are anchored to the Sunday of the cycle's start week so weekday roles stay fixed.
+function planForDate(dateStr){
+  const c = activeCycle();
+  if(!c) return null;
+  const startD = new Date(c.startDate+"T00:00:00");
+  const d = new Date(dateStr+"T00:00:00");
+  if(d < startD) return {cycle:c, before:true};
+  const startSun = new Date(startD);
+  startSun.setDate(startD.getDate() - startD.getDay());  // back up to Sunday
+  const totalWeeks = DB.program.weeks.length;
+  const weekRaw = Math.floor((d - startSun)/(7*86400000));
+  const finished = weekRaw >= totalWeeks;
+  const weekIdx = Math.max(0, Math.min(weekRaw, totalWeeks-1));
+  const dayIndex = d.getDay();
+  const dayTpl = DB.program.weeks[weekIdx][dayIndex];
+  return {cycle:c, weekNum:weekIdx+1, weekIdx, dayIndex, dayName:dayTpl.day, dayTpl, finished,
+          diffDays: Math.floor((d-startD)/86400000)};
+}
+
+/* kept for the Settings cycle table display */
+function cycleLoadMult(cycle){
+  const n = (cycle?.cycleNumber||1) - 1;
+  return Math.pow(1 + (cycle?.progressionPct||0)/100, n);
+}
+
+/* ---------- LOG HELPERS ---------- */
+function getLog(date){
+  if(!DB.logs[date]){
+    DB.logs[date] = { date, checks:{}, weights:{}, reps:{}, wall:{L:null,R:null,Lmisses:null,Rmisses:null},
+      recovery:{bed:"",wake:"",caffMg:"",caffTime:"",stretch:false},
+      teamComment:"", gameComment:"", gameStats:{}, isGame:false, notes:"" };
+  }
+  return DB.logs[date];
+}
+function checkId(b,i){ return b+"::"+i; }
+
+/* ---------- RECOVERY SCORE ----------
+   0-100. Components: sleep duration (40), sleep timing (15),
+   caffeine amount+timing (20), stretching/mobility (15), subjective bonus baseline (10)
+*/
+function recoveryScore(log){
+  const p = DB.program;
+  const r = log.recovery||{};
+  let sleepH = sleepHours(r.bed, r.wake);
+  // sleep duration
+  let dur=0;
+  if(sleepH!=null){
+    const tgt = p.sleepTargetH||8;
+    if(sleepH>=tgt) dur=40;
+    else if(sleepH<=4) dur=4;
+    else dur = Math.round( (sleepH-4)/(tgt-4)*36 + 4 );
+    if(sleepH>tgt+1.5) dur = 36; // oversleep slight ding
+  }
+  // sleep timing (bedtime vs target)
+  let timing=0;
+  if(r.bed){
+    const bedMin = toMin(r.bed);
+    const tgtMin = toMin(p.bedtimeTarget||"23:00");
+    // bedtime after midnight counts as next-day late
+    let bm = bedMin; if(bm < toMin("12:00")) bm += 1440; // past midnight
+    let tm = tgtMin; if(tm < toMin("12:00")) tm += 1440;
+    const lateBy = bm - tm; // minutes late vs target
+    if(lateBy<=0) timing=15;
+    else timing = Math.max(0, Math.round(15 - lateBy/15)); // -1 per 15 min late
+  }
+  // caffeine
+  let caff=20;
+  if(r.caffMg!==""&&r.caffMg!=null){
+    const mg = Number(r.caffMg)||0;
+    const cap = p.caffeineLimitMg||200;
+    if(mg>cap) caff -= Math.min(12, Math.round((mg-cap)/25*3));
+    // late caffeine penalty (after 15:00)
+    if(r.caffTime){
+      const cm = toMin(r.caffTime);
+      if(cm >= toMin("15:00")) caff -= Math.min(10, Math.round((cm-toMin("15:00"))/30*2)+2);
+    }
+    caff = Math.max(0, caff);
+  }
+  // stretch / mobility
+  let stretch = r.stretch ? 15 : 0;
+  // baseline subjective
+  let base = 10;
+  let total = dur + timing + caff + stretch + base;
+  total = Math.max(0, Math.min(100, Math.round(total)));
+  return { total, sleepH, parts:{dur, timing, caff, stretch, base} };
+}
+function toMin(t){ if(!t) return 0; const [h,m]=t.split(":").map(Number); return h*60+(m||0); }
+function sleepHours(bed,wake){
+  if(!bed||!wake) return null;
+  let b=toMin(bed), w=toMin(wake);
+  if(w<=b) w+=1440; // wake next day
+  return Math.round((w-b)/6)/10; // 0.1h precision
+}
+function scoreColor(s){ return s>=80?"var(--good)": s>=60?"var(--warn)":"var(--bad)"; }
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+let currentTab = "today";
+let viewDate = todayISO();
+
+function render(){
+  // cycle pill
+  const c = activeCycle();
+  const pill = document.getElementById("cyclePill");
+  if(!c){ pill.textContent="No cycle yet — start one in Settings"; }
+  else {
+    const pl = planForDate(todayISO());
+    if(pl && !pl.before && !pl.finished) pill.innerHTML = `<b>${c.name}</b> · Week ${pl.weekNum}/${c.weeks} · ${pl.dayName} (${pl.dayTpl.focus})`;
+    else if(pl && pl.finished) pill.innerHTML = `<b>${c.name}</b> · ✅ complete — generate next cycle`;
+    else pill.innerHTML = `<b>${c.name}</b> · starts ${c.startDate}`;
+  }
+  document.querySelectorAll("#nav button").forEach(b=>b.classList.toggle("active", b.dataset.tab===currentTab));
+  const m = document.getElementById("main");
+  if(currentTab==="today") m.innerHTML = viewToday();
+  else if(currentTab==="program") m.innerHTML = viewProgram();
+  else if(currentTab==="gameday") m.innerHTML = viewGameDay();
+  else if(currentTab==="history") m.innerHTML = viewHistory();
+  else if(currentTab==="settings") m.innerHTML = viewSettings();
+  if(currentTab==="history") drawHistoryCharts();
+}
+
+/* ---------- TODAY ---------- */
+function viewToday(){
+  const pl = planForDate(viewDate);
+  const log = getLog(viewDate);
+  const rec = recoveryScore(log);
+
+  let head = `
+   <div class="datebar">
+     <button class="ghost small" onclick="shiftDate(-1)">◀ Prev</button>
+     <input type="date" value="${viewDate}" onchange="setDate(this.value)" />
+     <button class="ghost small" onclick="shiftDate(1)">Next ▶</button>
+     <button class="ghost small" onclick="setDate('${todayISO()}')">Today</button>
+     <div class="spacer"></div>
+     <span class="muted">${prettyDate(viewDate)}</span>
+   </div>`;
+
+  if(!pl){
+    return head + `<div class="panel"><h2>No active cycle</h2><p class="sub">Go to <b>Settings</b> and start your first cycle to generate the daily plan & checklist.</p><button class="btn" onclick="goTab('settings')">Go to Settings</button></div>`;
+  }
+  if(pl.before){
+    return head + `<div class="panel"><h2>Cycle hasn't started</h2><p class="sub">Your cycle starts on <b>${pl.cycle.startDate}</b>.</p></div>`;
+  }
+
+  const dayTpl = pl.dayTpl;
+  const mult = cycleLoadMult(pl.cycle);
+
+  // Build checklist items from blocks
+  let allItems = [];
+  dayTpl.blocks.forEach((blk,bi)=>{
+    blk.items.forEach((it,ii)=> allItems.push({blk,bi,it,ii}));
+  });
+  DB.program.recovery.forEach((r,ri)=> allItems.push({recovery:r, ri}));
+
+  const doneCount = allItems.filter(x=>{
+    const id = x.recovery ? "rec::"+x.recovery.key : checkId(x.bi,x.ii);
+    return log.checks[id];
+  }).length;
+  const pct = allItems.length? Math.round(doneCount/allItems.length*100):0;
+
+  // recovery panel
+  let recoveryPanel = `
+   <div class="panel">
+     <h2>Recovery Score</h2>
+     <p class="sub">Sleep • caffeine • stretching → daily readiness</p>
+     <div class="score-ring">
+       ${ring(rec.total)}
+       <div style="flex:1">
+         <div class="grid g2">
+           <div><label class="fld">Bedtime</label><input type="time" value="${log.recovery.bed||''}" onchange="updRec('bed',this.value)"></div>
+           <div><label class="fld">Wake time</label><input type="time" value="${log.recovery.wake||''}" onchange="updRec('wake',this.value)"></div>
+           <div><label class="fld">Caffeine (mg)</label><input type="number" min="0" step="10" placeholder="e.g. 150" value="${log.recovery.caffMg}" onchange="updRec('caffMg',this.value)"></div>
+           <div><label class="fld">Last caffeine time</label><input type="time" value="${log.recovery.caffTime||''}" onchange="updRec('caffTime',this.value)"></div>
+         </div>
+         <div class="row" style="margin-top:10px">
+           <label class="row" style="gap:8px;cursor:pointer"><input type="checkbox" style="width:20px;height:20px;accent-color:var(--good)" ${log.recovery.stretch?'checked':''} onchange="updRec('stretch',this.checked)"> Stretching / mobility done</label>
+         </div>
+         <div class="legend" style="margin-top:12px">
+           <span style="color:var(--good)">Sleep ${rec.sleepH!=null?rec.sleepH+'h':'—'} (${rec.parts.dur}/40)</span>
+           <span style="color:var(--accent)">Timing ${rec.parts.timing}/15</span>
+           <span style="color:var(--warn)">Caffeine ${rec.parts.caff}/20</span>
+           <span style="color:var(--accent2)">Stretch ${rec.parts.stretch}/15</span>
+         </div>
+       </div>
+     </div>
+   </div>`;
+
+  // progress
+  let prog = `
+   <div class="panel">
+     <div class="row">
+       <h2 style="margin:0">Daily Checklist — ${dayTpl.day}: ${dayTpl.focus}</h2>
+       <div class="spacer"></div>
+       <span class="chip day">Week ${pl.weekNum}/${pl.cycle.weeks}</span>
+       ${pl.finished?'<span class="chip" style="background:var(--good);color:#06121c">Cycle complete</span>':''}
+     </div>
+     <div class="row" style="margin:10px 0 4px"><div class="progress" style="flex:1"><div style="width:${pct}%"></div></div><b style="width:46px;text-align:right">${pct}%</b></div>
+     <p class="sub">${doneCount} of ${allItems.length} items completed</p>`;
+
+  // render blocks
+  dayTpl.blocks.forEach((blk,bi)=>{
+    prog += `<h3>${blk.name} <span class="tag ${blk.type}">${typeLabel(blk.type)}</span></h3>`;
+    blk.items.forEach((it,ii)=>{
+      const id = checkId(bi,ii);
+      const done = !!log.checks[id];
+      let extra = "";
+      // weight logging
+      if(it.load){
+        const wv = log.weights[id]!=null?log.weights[id]:"";
+        const rv = log.reps[id]!=null?log.reps[id]:"";
+        const suggest = "";
+        extra += `<div class="extra">
+            <div><label class="fld">Weight (kg)</label><input class="miniinput w" type="number" step="0.5" placeholder="load" value="${wv}" onchange="updWeight('${id}',this.value)"></div>
+            <div><label class="fld">Reps done</label><input class="miniinput" type="text" placeholder="${it.spec}" value="${rv}" onchange="updReps('${id}',this.value)"></div>
+            ${prevWeightHint(it.ex)}
+          </div>`;
+      }
+      // wall ball special
+      if(it.wall){
+        const side=it.wall;
+        const reps = log.wall[side]!=null?log.wall[side]:"";
+        const miss = log.wall[side+"misses"]!=null?log.wall[side+"misses"]:"";
+        extra += `<div class="extra">
+            <div><label class="fld">${side==='L'?'Left':'Right'} hand reps</label><input class="miniinput" type="number" min="0" placeholder="reps" value="${reps}" onchange="updWall('${side}',this.value)"></div>
+            <div><label class="fld">Drops/misses</label><input class="miniinput" type="number" min="0" placeholder="opt" value="${miss}" onchange="updWall('${side}misses',this.value)"></div>
+          </div>`;
+      }
+      // rest timer button
+      let restBtn = it.restSec ? `<button class="ghost small" onclick="startTimer(${it.restSec},'Rest — next after ${esc(it.ex)}')">⏱ Rest ${fmtSec(it.restSec)}</button>` : "";
+      prog += `
+        <div class="check ${done?'done':''}">
+          <div class="cb"><input type="checkbox" ${done?'checked':''} onchange="toggleCheck('${id}',this.checked)"></div>
+          <div class="body">
+            <div class="title ${done?'strike':''}">${esc(it.ex)}</div>
+            <div class="meta"><b>${esc(it.spec)}</b>${it.restSec?` · rest <b>${fmtSec(it.restSec)}</b>`:''}${it.cue?` · <i>${esc(it.cue)}</i>`:''}</div>
+            <div class="row" style="margin-top:8px">${restBtn}</div>
+            ${extra}
+          </div>
+        </div>`;
+    });
+  });
+
+  // team comment if team day
+  const isTeam = dayTpl.blocks.some(b=>b.type==="team");
+  if(isTeam){
+    prog += `<h3>Session Reflection <span class="tag team">Notes</span></h3>
+      <textarea placeholder="How did team training / the session feel? Focus areas, energy, what to improve..." onchange="updField('teamComment',this.value)">${esc(log.teamComment||'')}</textarea>`;
+  }
+
+  // recovery lifestyle checks
+  prog += `<h3>Lifestyle & Recovery <span class="tag recov">Daily</span></h3>`;
+  DB.program.recovery.forEach((r)=>{
+    const id="rec::"+r.key;
+    const done=!!log.checks[id];
+    prog += `<div class="check ${done?'done':''}">
+       <div class="cb"><input type="checkbox" ${done?'checked':''} onchange="toggleCheck('${id}',this.checked)"></div>
+       <div class="body"><div class="title ${done?'strike':''}">${esc(r.label)}</div></div></div>`;
+  });
+
+  prog += `<h3>Day Notes</h3><textarea placeholder="Anything else about today..." onchange="updField('notes',this.value)">${esc(log.notes||'')}</textarea>`;
+  prog += `</div>`;
+
+  // EXOS + benchmark quick reference
+  let ref = `<details class="prog"><summary>📋 EXOS sequence & benchmark reference</summary><div class="inner" style="padding-top:10px">`;
+  ref += `<div class="exos-grid">`;
+  (DB.program.exosSequence||[]).forEach((s,i)=> ref+=`<div class="exos-item"><div class="num">${i+1}</div><div><div class="t">${esc(s[0])}</div><div class="d">${esc(s[1])}</div></div></div>`);
+  ref += `</div><div class="grid g2" style="margin-top:12px">`;
+  (DB.program.benchmarks||[]).forEach(b=>{ const r=benchmarkBest(b.name);
+    ref += `<div class="bm-card"><div class="nm">${esc(b.name)}<div class="muted" style="font-size:11px">${esc(b.prog)}</div></div><div class="best">${r.best!=null?r.best+'kg':'—'}</div></div>`; });
+  ref += `</div></div></details>`;
+
+  return head + recoveryPanel + prog + ref;
+}
+
+function prevWeightHint(exName){
+  // find last logged weight for this exercise (by name) before viewDate
+  const dates = Object.keys(DB.logs).filter(d=>d<viewDate).sort().reverse();
+  for(const d of dates){
+    const lg=DB.logs[d];
+    const pl=planForDate(d);
+    if(!pl||!pl.dayTpl) continue;
+    let found=null;
+    pl.dayTpl.blocks.forEach((blk,bi)=>blk.items.forEach((it,ii)=>{
+      if(it.ex===exName && lg.weights[checkId(bi,ii)]!=null && lg.weights[checkId(bi,ii)]!=="") found=lg.weights[checkId(bi,ii)];
+    }));
+    if(found!=null) return `<div class="muted" style="font-size:11px;align-self:center">last: <b>${found}kg</b> (${d.slice(5)})</div>`;
+  }
+  return "";
+}
+
+function ring(score){
+  const r=52, c=2*Math.PI*r, off=c*(1-score/100);
+  const col=scoreColor(score);
+  return `<div class="ring"><svg width="120" height="120" viewBox="0 0 120 120">
+    <circle cx="60" cy="60" r="${r}" fill="none" stroke="var(--line)" stroke-width="12"/>
+    <circle cx="60" cy="60" r="${r}" fill="none" stroke="${col}" stroke-width="12" stroke-linecap="round"
+      stroke-dasharray="${c}" stroke-dashoffset="${off}"/>
+   </svg><div class="lbl"><b style="color:${col}">${score}</b><span>readiness</span></div></div>`;
+}
+
+/* ---------- PROGRAM (full detailed view) ---------- */
+function exosCard(){
+  const p=DB.program; if(!p.exosSequence) return "";
+  let h=`<div class="panel"><h2>EXOS Session Sequence</h2><p class="sub">Every strength day follows this 8-component order. Prep earns the right to load.</p><div class="exos-grid">`;
+  p.exosSequence.forEach((s,i)=> h+=`<div class="exos-item"><div class="num">${i+1}</div><div><div class="t">${esc(s[0])}</div><div class="d">${esc(s[1])}</div></div></div>`);
+  h+=`</div></div>`;
+  return h;
+}
+function benchmarkCard(){
+  const p=DB.program; if(!p.benchmarks) return "";
+  let h=`<div class="panel"><h2>Benchmark Lifts</h2><p class="sub">The 5 tracked lifts. Progress by adding load when all sets are clean; true 1RM tested in Week 4. "Best" reads from your logged weights.</p><div class="grid g2">`;
+  p.benchmarks.forEach(b=>{
+    const r=benchmarkBest(b.name);
+    h+=`<div class="bm-card"><div class="nm">${esc(b.name)}<div class="d muted" style="font-size:11px">${esc(b.group)} · ${esc(b.prog)}</div></div>
+        <div class="best">${r.best!=null?r.best+'kg':'—'}</div></div>`;
+  });
+  h+=`</div></div>`;
+  return h;
+}
+function viewProgram(){
+  const p=DB.program;
+  let h=`<div class="panel">
+     <h2>${esc(p.name)}</h2>
+     <p class="sub">${p.weeks.length}-week mesocycle · in-season volume managed · +${p.progressionUpperKg}kg upper / +${p.progressionLowerKg}kg lower when clean · sleep target ${p.sleepTargetH}h · bedtime ${p.bedtimeTarget} · caffeine cap ${p.caffeineLimitMg}mg</p>
+     <div class="hint">Your complete program — every set, rep, suggested rest, and coaching cue is here, so no external reference is needed. Edit any of it in <b>Settings</b>.</div>
+     <div style="margin-top:12px"><b>Goals (priority order):</b><div style="margin-top:6px">${(p.goals||[]).map(g=>`<span class="chip day">${esc(g)}</span>`).join("")}</div></div>
+     ${p.principles?`<div style="margin-top:12px"><b>Programming principles:</b><ul style="margin:8px 0 0;padding-left:18px;color:var(--muted);font-size:13px">${p.principles.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`:''}
+     <div class="legend" style="margin-top:14px">
+       <span class="tag pillar">Pillar Prep</span><span class="tag mob">Movement Prep</span><span class="tag plyo">Plyometrics</span><span class="tag mb">Med Ball</span>
+       <span class="tag speed">Speed</span><span class="tag lift">Strength</span><span class="tag cond">Energy Sys</span><span class="tag recov">Regen</span>
+       <span class="tag skill">Skill</span><span class="tag team">Team</span><span class="tag pap">PAP pair</span>
+     </div>
+   </div>`;
+
+  h+=exosCard();
+  h+=benchmarkCard();
+
+  const weekLabels=["Week 1 · Reintroduce","Week 2 · Build","Week 3 · Peak","Week 4 · Deload + 1RM Test"];
+  p.weeks.forEach((week,wi)=>{
+    h+=`<div class="panel"><h2 style="color:var(--accent2)">${esc(weekLabels[wi]||("Week "+(wi+1)))}</h2>`;
+    week.forEach(day=>{
+      let totalRest=0, exCount=0;
+      day.blocks.forEach(b=>b.items.forEach(it=>{ totalRest+=it.restSec||0; exCount++;}));
+      const open = wi===0 ? "" : "";
+      h+=`<details class="prog"${open}><summary>${day.day} — ${esc(day.focus)} <span class="muted" style="font-weight:400">· ${exCount} items · ~${Math.round(totalRest/60)} min rest</span></summary><div class="inner">`;
+      day.blocks.forEach(blk=>{
+        h+=`<div class="exblock"><div class="head">${esc(blk.name)} <span class="tag ${blk.type}">${typeLabel(blk.type)}</span></div>`;
+        blk.items.forEach(it=>{
+          const isPap=/PAP/.test(it.ex)||/PAP PAIR/.test(it.cue||"");
+          h+=`<div class="exrow">
+            <div class="name">${esc(it.ex)}${it.wall?` <span class="chip" style="background:#0d2a33;color:#4cc2ff">${it.wall==='L'?'Left hand':'Right hand'}</span>`:''}${it.test?` <span class="tag pap">1RM TEST</span>`:''}</div>
+            <div class="spec">${esc(it.spec)}${it.load?' · log weight':''}</div>
+            <div class="spec">${it.restSec?`⏱ rest ${fmtSec(it.restSec)}`:'—'}</div>
+            ${it.cue?`<div class="cue">💡 ${esc(it.cue)}</div>`:''}
+          </div>`;
+        });
+        h+=`</div>`;
+      });
+      h+=`</div></details>`;
+    });
+    h+=`</div>`;
+  });
+
+  h+=`<div class="panel"><h3>Daily Lifestyle & Recovery (every day)</h3>`;
+  p.recovery.forEach(r=> h+=`<div class="chip">${esc(r.label)}</div>`);
+  h+=`</div>`;
+  return h;
+}
+
+/* ---------- GAME DAY ---------- */
+function viewGameDay(){
+  const log=getLog(viewDate);
+  const p=DB.program;
+  let h=`<div class="datebar">
+     <input type="date" value="${viewDate}" onchange="setDate(this.value)" />
+     <button class="ghost small" onclick="setDate('${todayISO()}')">Today</button>
+     <label class="row" style="gap:8px;margin-left:auto;cursor:pointer"><input type="checkbox" style="width:20px;height:20px;accent-color:var(--accent)" ${log.isGame?'checked':''} onchange="updField('isGame',this.checked)"> Mark ${viewDate} as a game</label>
+   </div>`;
+
+  h+=`<div class="panel">
+     <h2>Game Day Stats — ${prettyDate(viewDate)}</h2>
+     <p class="sub">Enter your stat line. Fields are editable in Settings.</p>
+     <div class="grid g3">`;
+  p.gameStats.forEach(s=>{
+    const v=log.gameStats[s]!=null?log.gameStats[s]:"";
+    h+=`<div class="stat-in"><label>${esc(s)}</label><input type="number" step="any" value="${v}" onchange="updGameStat('${esc(s)}',this.value)"></div>`;
+  });
+  h+=`</div>`;
+  // computed
+  const pts=Number(log.gameStats["Points"]||0);
+  const fgm=Number(log.gameStats["FG Made"]||0), fga=Number(log.gameStats["FG Att"]||0);
+  const tpm=Number(log.gameStats["3PT Made"]||0), tpa=Number(log.gameStats["3PT Att"]||0);
+  const ftm=Number(log.gameStats["FT Made"]||0), fta=Number(log.gameStats["FT Att"]||0);
+  if(fga||tpa||fta){
+    h+=`<div class="grid g3" style="margin-top:14px">
+      <div class="kpi"><div class="k">FG%</div><div class="v">${fga?Math.round(fgm/fga*100):0}%</div></div>
+      <div class="kpi"><div class="k">3PT%</div><div class="v">${tpa?Math.round(tpm/tpa*100):0}%</div></div>
+      <div class="kpi"><div class="k">FT%</div><div class="v">${fta?Math.round(ftm/fta*100):0}%</div></div>
+    </div>`;
+  }
+  h+=`</div>`;
+
+  h+=`<div class="panel"><h2>Game Day Reflection</h2>
+     <p class="sub">How did you play & feel? What to work on next.</p>
+     <textarea style="min-height:140px" placeholder="Performance, decision-making, energy, matchups, takeaways..." onchange="updField('gameComment',this.value)">${esc(log.gameComment||'')}</textarea>
+   </div>`;
+  return h;
+}
+
+/* ---------- HISTORY ---------- */
+function viewHistory(){
+  const dates=Object.keys(DB.logs).sort();
+  if(!dates.length) return `<div class="panel"><h2>History</h2><p class="sub">No data logged yet. Start ticking off your daily checklist and your performance trends will appear here.</p></div>`;
+
+  // KPIs
+  let totChecks=0, recScores=[], games=[];
+  dates.forEach(d=>{
+    const lg=DB.logs[d];
+    totChecks += Object.values(lg.checks).filter(Boolean).length;
+    const rs=recoveryScore(lg);
+    if(lg.recovery.bed||lg.recovery.wake) recScores.push(rs.total);
+    if(lg.isGame) games.push({d,lg});
+  });
+  const avgRec = recScores.length?Math.round(recScores.reduce((a,b)=>a+b,0)/recScores.length):0;
+  const streak = currentStreak();
+
+  let h=`<div class="grid g3">
+     <div class="kpi"><div class="k">Days logged</div><div class="v">${dates.length}</div></div>
+     <div class="kpi"><div class="k">Avg recovery</div><div class="v" style="color:${scoreColor(avgRec)}">${avgRec}</div></div>
+     <div class="kpi"><div class="k">Completion streak</div><div class="v">${streak}🔥</div></div>
+     <div class="kpi"><div class="k">Items completed</div><div class="v">${totChecks}</div></div>
+     <div class="kpi"><div class="k">Games played</div><div class="v">${games.length}</div></div>
+     <div class="kpi"><div class="k">Cycles</div><div class="v">${DB.cycles.length}</div></div>
+   </div>`;
+
+  // recovery trend chart
+  h+=`<div class="panel"><h2>Recovery Score Trend</h2><canvas id="chartRec" height="180"></canvas></div>`;
+
+  // exercise progression selector
+  const exList = allLoggedExercises();
+  h+=`<div class="panel"><h2>Strength Progression</h2>
+     ${exList.length?`<select id="exSelect" onchange="drawHistoryCharts()" style="max-width:320px;margin-bottom:10px">${exList.map(e=>`<option>${esc(e)}</option>`).join("")}</select>
+     <canvas id="chartEx" height="180"></canvas>`:`<p class="sub">Log some weights on the Today tab to see progression.</p>`}</div>`;
+
+  // wall ball trend
+  h+=`<div class="panel"><h2>Wall Ball Reps (L vs R)</h2><canvas id="chartWall" height="180"></canvas><div class="legend" style="margin-top:8px"><span style="color:var(--accent)">Right hand</span><span style="color:var(--accent2)">Left hand</span></div></div>`;
+
+  // completion % per day
+  h+=`<div class="panel"><h2>Daily Completion %</h2><canvas id="chartComp" height="160"></canvas></div>`;
+
+  // game log table
+  if(games.length){
+    const cols=DB.program.gameStats;
+    h+=`<div class="panel"><h2>Game Log</h2><div style="overflow:auto"><table><thead><tr><th>Date</th>${cols.map(c=>`<th>${esc(c)}</th>`).join("")}<th>Notes</th></tr></thead><tbody>`;
+    games.slice().reverse().forEach(g=>{
+      h+=`<tr><td>${g.d}</td>${cols.map(c=>`<td>${g.lg.gameStats[c]??''}</td>`).join("")}<td class="muted">${esc((g.lg.gameComment||'').slice(0,40))}</td></tr>`;
+    });
+    h+=`</tbody></table></div></div>`;
+  }
+
+  // full daily log
+  h+=`<div class="panel"><h2>Daily Log</h2><div style="overflow:auto;max-height:420px"><table><thead><tr><th>Date</th><th>Day</th><th>Done</th><th>Recovery</th><th>Sleep</th><th>WB R/L</th><th>Notes</th></tr></thead><tbody>`;
+  dates.slice().reverse().forEach(d=>{
+    const lg=DB.logs[d]; const pl=planForDate(d); const rs=recoveryScore(lg);
+    const done=Object.values(lg.checks).filter(Boolean).length;
+    h+=`<tr style="cursor:pointer" onclick="setDate('${d}');goTab('today')">
+      <td>${d}</td><td>${pl&&pl.dayTpl?pl.dayTpl.day:'—'}</td>
+      <td>${done}</td>
+      <td style="color:${scoreColor(rs.total)}">${(lg.recovery.bed||lg.recovery.wake)?rs.total:'—'}</td>
+      <td>${rs.sleepH!=null?rs.sleepH+'h':'—'}</td>
+      <td>${lg.wall.R??'–'}/${lg.wall.L??'–'}</td>
+      <td class="muted">${esc((lg.notes||lg.teamComment||lg.gameComment||'').slice(0,30))}</td>
+    </tr>`;
+  });
+  h+=`</tbody></table></div></div>`;
+  return h;
+}
+
+function currentStreak(){
+  let s=0; let d=new Date(todayISO()+"T00:00:00");
+  while(true){
+    const ds=d.toISOString().slice(0,10);
+    const lg=DB.logs[ds];
+    if(lg && Object.values(lg.checks).filter(Boolean).length>0){ s++; d.setDate(d.getDate()-1); }
+    else break;
+  }
+  return s;
+}
+function allLoggedExercises(){
+  const set=new Set();
+  Object.keys(DB.logs).forEach(d=>{
+    const lg=DB.logs[d]; const pl=planForDate(d);
+    if(!pl||!pl.dayTpl) return;
+    pl.dayTpl.blocks.forEach((blk,bi)=>blk.items.forEach((it,ii)=>{
+      if(it.load && lg.weights[checkId(bi,ii)]!=null && lg.weights[checkId(bi,ii)]!=="") set.add(it.ex);
+    }));
+  });
+  return [...set].sort();
+}
+
+/* ---------- tiny canvas charting ---------- */
+function lineChart(canvas, series, opts){
+  if(!canvas) return;
+  const ctx=canvas.getContext("2d");
+  const W=canvas.width=canvas.clientWidth*2, H=canvas.height=(opts.h||180)*2;
+  ctx.scale(1,1);
+  ctx.clearRect(0,0,W,H);
+  const pad=44*2;
+  const allVals=series.flatMap(s=>s.data.map(p=>p.y)).filter(v=>v!=null);
+  if(!allVals.length){ ctx.fillStyle="#8a99a8"; ctx.font="24px sans-serif"; ctx.fillText("No data yet",pad,H/2); return; }
+  let min=opts.min!=null?opts.min:Math.min(...allVals), max=opts.max!=null?opts.max:Math.max(...allVals);
+  if(min===max){min-=1;max+=1;}
+  const xs=series[0].data.map(p=>p.x);
+  const n=Math.max(...series.map(s=>s.data.length));
+  const X=i=>pad+(W-pad-pad/2)*(n<=1?0.5:i/(n-1));
+  const Y=v=>H-pad-(H-pad-pad/2)*((v-min)/(max-min));
+  // grid
+  ctx.strokeStyle="#2c3947"; ctx.lineWidth=1; ctx.fillStyle="#8a99a8"; ctx.font="20px sans-serif";
+  for(let g=0;g<=4;g++){
+    const v=min+(max-min)*g/4; const y=Y(v);
+    ctx.beginPath(); ctx.moveTo(pad,y); ctx.lineTo(W-pad/2,y); ctx.stroke();
+    ctx.fillText(Math.round(v),6,y+6);
+  }
+  series.forEach(s=>{
+    ctx.strokeStyle=s.color; ctx.lineWidth=4; ctx.beginPath();
+    let started=false;
+    s.data.forEach((p,i)=>{ if(p.y==null) return; const x=X(i),y=Y(p.y); if(!started){ctx.moveTo(x,y);started=true;}else ctx.lineTo(x,y); });
+    ctx.stroke();
+    ctx.fillStyle=s.color;
+    s.data.forEach((p,i)=>{ if(p.y==null) return; ctx.beginPath(); ctx.arc(X(i),Y(p.y),5,0,7); ctx.fill(); });
+  });
+  // x labels (first / mid / last)
+  ctx.fillStyle="#8a99a8";
+  [0,Math.floor((n-1)/2),n-1].forEach(i=>{ if(xs[i]) ctx.fillText(String(xs[i]).slice(5),X(i)-20,H-12); });
+}
+function barChart(canvas, data, opts){
+  if(!canvas) return;
+  const ctx=canvas.getContext("2d");
+  const W=canvas.width=canvas.clientWidth*2, H=canvas.height=(opts.h||160)*2;
+  ctx.clearRect(0,0,W,H);
+  const pad=44*2;
+  if(!data.length){ctx.fillStyle="#8a99a8";ctx.font="24px sans-serif";ctx.fillText("No data yet",pad,H/2);return;}
+  const max=opts.max||100;
+  const bw=(W-pad-pad/2)/data.length*0.7, gap=(W-pad-pad/2)/data.length*0.3;
+  ctx.fillStyle="#8a99a8"; ctx.font="20px sans-serif";
+  for(let g=0;g<=4;g++){const v=max*g/4;const y=H-pad-(H-pad-pad/2)*(v/max);ctx.strokeStyle="#2c3947";ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(W-pad/2,y);ctx.stroke();ctx.fillText(Math.round(v),6,y+6);}
+  data.forEach((d,i)=>{
+    const x=pad+i*(bw+gap); const h=(H-pad-pad/2)*(d.v/max); const y=H-pad-h;
+    ctx.fillStyle=d.color||"#4cc2ff"; ctx.fillRect(x,y,bw,h);
+  });
+  ctx.fillStyle="#8a99a8";
+  [0,Math.floor((data.length-1)/2),data.length-1].forEach(i=>{if(data[i])ctx.fillText(String(data[i].x).slice(5),pad+i*(bw+gap),H-12);});
+}
+
+function drawHistoryCharts(){
+  const dates=Object.keys(DB.logs).sort();
+  // recovery
+  const recData=dates.map(d=>{const lg=DB.logs[d];const has=lg.recovery.bed||lg.recovery.wake;return {x:d,y:has?recoveryScore(lg).total:null};}).filter(p=>p.y!=null);
+  lineChart(document.getElementById("chartRec"),[{color:"#3fb950",data:recData}],{min:0,max:100});
+
+  // exercise
+  const sel=document.getElementById("exSelect");
+  if(sel){
+    const ex=sel.value;
+    const exData=[];
+    dates.forEach(d=>{const lg=DB.logs[d];const pl=planForDate(d);if(!pl||!pl.dayTpl)return;
+      pl.dayTpl.blocks.forEach((blk,bi)=>blk.items.forEach((it,ii)=>{
+        if(it.ex===ex){const w=lg.weights[checkId(bi,ii)];if(w!=null&&w!=="")exData.push({x:d,y:Number(w)});}
+      }));});
+    lineChart(document.getElementById("chartEx"),[{color:"#4cc2ff",data:exData}],{});
+  }
+  // wall ball
+  const wallR=dates.map(d=>({x:d,y:DB.logs[d].wall.R!=null&&DB.logs[d].wall.R!==""?Number(DB.logs[d].wall.R):null})).filter(p=>p.y!=null);
+  const wallL=dates.map(d=>({x:d,y:DB.logs[d].wall.L!=null&&DB.logs[d].wall.L!==""?Number(DB.logs[d].wall.L):null})).filter(p=>p.y!=null);
+  lineChart(document.getElementById("chartWall"),[{color:"#4cc2ff",data:wallR},{color:"#7c5cff",data:wallL}],{min:0});
+
+  // completion
+  const compData=dates.map(d=>{const lg=DB.logs[d];const pl=planForDate(d);
+    let total=0;if(pl&&pl.dayTpl){pl.dayTpl.blocks.forEach(b=>total+=b.items.length);}total+=DB.program.recovery.length;
+    const done=Object.values(lg.checks).filter(Boolean).length;
+    return {x:d,v:total?Math.round(done/total*100):0,color:"#7c5cff"};});
+  barChart(document.getElementById("chartComp"),compData,{max:100});
+}
+
+/* ---------- SETTINGS ---------- */
+function viewSettings(){
+  const p=DB.program; const c=activeCycle();
+  let nextSun=new Date(); nextSun.setDate(nextSun.getDate()+((7-nextSun.getDay())%7||7));
+  const defStart=DB.cycles.length? nextSun.toISOString().slice(0,10) : todayISO();
+  let h=`<div class="panel">
+     <h2>Cycle Control</h2>
+     <p class="sub">Each cycle is a ${p.weeks.length}-week mesocycle (Week 1 reintroduce → 2 build → 3 peak → 4 deload + 1RM test). Cycles stay <b>coherent & connected</b>: your logged weights and tested 1RMs carry forward as the "last weight" reference, so you just keep adding +${p.progressionUpperKg}kg upper / +${p.progressionLowerKg}kg lower when sets feel clean.</p>
+     <div class="row">
+       <button class="btn" onclick="onStartCycle()">${DB.cycles.length?'Generate Next Cycle ▶':'Start First Cycle ▶'}</button>
+       <input type="date" id="cycleStart" value="${defStart}" style="width:auto">
+       <span class="muted">start date${DB.cycles.length?' (defaults to next Sunday)':''}</span>
+     </div>
+     <div class="hint">Tip: start a cycle on (or in the week of) a <b>Sunday</b> — the plan anchors weekday roles (Sun lower power, Sat game, etc.) to the calendar.</div>`;
+  if(DB.cycles.length){
+    h+=`<h3>Cycles</h3><table><thead><tr><th>#</th><th>Name</th><th>Start</th><th>Weeks</th><th></th></tr></thead><tbody>`;
+    DB.cycles.forEach((cy,i)=>{
+      h+=`<tr><td>${cy.cycleNumber}</td><td>${esc(cy.name)}</td><td>${cy.startDate}</td><td>${cy.weeks}</td>
+        <td class="right"><button class="ghost small" onclick="delCycle(${i})">Delete</button></td></tr>`;
+    });
+    h+=`</tbody></table>`;
+  }
+  h+=`</div>`;
+
+  // program params
+  h+=`<div class="panel"><h2>Program Settings</h2>
+     <div class="grid g2">
+       <div><label class="fld">Program name</label><input value="${esc(p.name)}" onchange="setProg('name',this.value)"></div>
+       <div><label class="fld">Progression — upper (kg)</label><input type="number" step="0.5" value="${p.progressionUpperKg}" onchange="setProg('progressionUpperKg',Number(this.value))"></div>
+       <div><label class="fld">Progression — lower (kg)</label><input type="number" step="0.5" value="${p.progressionLowerKg}" onchange="setProg('progressionLowerKg',Number(this.value))"></div>
+       <div><label class="fld">Sleep target (hours)</label><input type="number" step="0.25" value="${p.sleepTargetH}" onchange="setProg('sleepTargetH',Number(this.value))"></div>
+       <div><label class="fld">Bedtime target</label><input type="time" value="${p.bedtimeTarget}" onchange="setProg('bedtimeTarget',this.value)"></div>
+       <div><label class="fld">Caffeine cap (mg)</label><input type="number" step="10" value="${p.caffeineLimitMg}" onchange="setProg('caffeineLimitMg',Number(this.value))"></div>
+     </div></div>`;
+
+  // game stat fields
+  h+=`<div class="panel"><h2>Game Stat Fields</h2><p class="sub">Comma-separated list of the stats you track each game.</p>
+     <textarea onchange="setGameStats(this.value)">${esc(p.gameStats.join(", "))}</textarea></div>`;
+
+  // recovery items
+  h+=`<div class="panel"><h2>Daily Lifestyle Items</h2><p class="sub">One per line — these appear as daily checklist items.</p>
+     <textarea onchange="setRecovery(this.value)">${esc(p.recovery.map(r=>r.label).join("\n"))}</textarea></div>`;
+
+  // program editor (raw, advanced)
+  h+=`<div class="panel"><h2>Edit Full Program (advanced)</h2>
+     <div class="hint">The plan is a JSON array of <b>${p.weeks.length} weeks</b>, each an array of <b>7 days</b> (Sun→Sat). Each day has <code>blocks</code>; each block has <code>items</code> with <code>ex</code>, <code>spec</code> (sets/reps), <code>restSec</code>, optional <code>load:true</code> (log weight), <code>wall:"L"/"R"</code> (wall-ball), <code>test:true</code>, and <code>cue</code>. Edit anything to match your own program.</div>
+     <textarea id="progJson" style="min-height:280px;font-family:monospace;font-size:12px">${esc(JSON.stringify(p.weeks,null,2))}</textarea>
+     <div class="row" style="margin-top:10px"><button class="btn" onclick="saveProgJson()">Save Program</button><span class="muted" id="jsonMsg"></span></div>
+   </div>`;
+
+  // data management
+  h+=`<div class="panel"><h2>Data</h2><p class="sub">All data is stored only in this browser (localStorage). Back it up here.</p>
+     <div class="row">
+       <button class="ghost" onclick="exportData()">⬇ Export backup (JSON)</button>
+       <label class="btn" style="cursor:pointer">⬆ Import backup<input type="file" accept="application/json" style="display:none" onchange="importData(this)"></label>
+       <button class="danger" onclick="resetAll()">Reset everything</button>
+     </div></div>`;
+  return h;
+}
+
+/* ============================================================
+   ACTIONS
+   ============================================================ */
+function goTab(t){ currentTab=t; render(); window.scrollTo(0,0); }
+function setDate(d){ viewDate=d; render(); }
+function shiftDate(n){ const d=new Date(viewDate+"T00:00:00"); d.setDate(d.getDate()+n); viewDate=d.toISOString().slice(0,10); render(); }
+
+function toggleCheck(id,val){ const lg=getLog(viewDate); lg.checks[id]=val; save(); render(); }
+function updWeight(id,v){ const lg=getLog(viewDate); lg.weights[id]= v===""?"":Number(v); save(); }
+function updReps(id,v){ const lg=getLog(viewDate); lg.reps[id]=v; save(); }
+function updWall(side,v){ const lg=getLog(viewDate); lg.wall[side]= v===""?"":Number(v); save(); }
+function updRec(k,v){ const lg=getLog(viewDate); lg.recovery[k]=v; save(); render(); }
+function updField(k,v){ const lg=getLog(viewDate); lg[k]=v; save(); if(k==="isGame")render(); }
+function updGameStat(s,v){ const lg=getLog(viewDate); lg.gameStats[s]= v===""?"":Number(v); save(); }
+
+function onStartCycle(){
+  const sd=document.getElementById("cycleStart").value||todayISO();
+  startCycle(sd);
+  toast("Cycle generated 🎉");
+  goTab("today");
+}
+function delCycle(i){ if(confirm("Delete this cycle?")){ DB.cycles.splice(i,1); save(); render(); } }
+function setProg(k,v){ DB.program[k]=v; save(); render(); }
+function setGameStats(v){ DB.program.gameStats=v.split(",").map(s=>s.trim()).filter(Boolean); save(); }
+function setRecovery(v){ DB.program.recovery=v.split("\n").map(s=>s.trim()).filter(Boolean).map(l=>({key:l.toLowerCase().replace(/[^a-z0-9]+/g,"_").slice(0,20),label:l})); save(); }
+function saveProgJson(){
+  try{
+    const w=JSON.parse(document.getElementById("progJson").value);
+    if(!Array.isArray(w)||!w.length) throw new Error("Expected an array of weeks");
+    if(!w.every(wk=>Array.isArray(wk)&&wk.length===7)) throw new Error("Each week must have exactly 7 days (Sun→Sat)");
+    DB.program.weeks=w; save();
+    document.getElementById("jsonMsg").textContent="✓ Saved!";
+    toast("Program saved");
+    render();
+  }catch(e){ document.getElementById("jsonMsg").innerHTML=`<span style="color:var(--bad)">Error: ${esc(e.message)}</span>`; }
+}
+function exportData(){
+  const blob=new Blob([JSON.stringify(DB,null,2)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download="training-tracker-backup-"+todayISO()+".json"; a.click();
+}
+function importData(input){
+  const f=input.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{ try{ DB=JSON.parse(r.result); save(); toast("Imported"); render(); }catch(e){ alert("Invalid file"); } };
+  r.readAsText(f);
+}
+function resetAll(){ if(confirm("Erase ALL data and reset to defaults?")){ localStorage.removeItem(LS_KEY); DB=load(); render(); } }
+
+/* ---------- REST TIMER ---------- */
+let timerInt=null, timerLeft=0;
+function startTimer(sec,label){
+  stopTimer();
+  timerLeft=sec;
+  document.getElementById("timerLabel").textContent=label||"Rest";
+  document.getElementById("timerBox").classList.add("show");
+  updTimerDisp();
+  timerInt=setInterval(()=>{
+    timerLeft--;
+    updTimerDisp();
+    if(timerLeft<=0){ stopTimer(); beep(); toast("Rest done — go! 💪"); }
+  },1000);
+}
+function addRest(s){ timerLeft+=s; updTimerDisp(); }
+function updTimerDisp(){ document.getElementById("timerVal").textContent=fmtSec(Math.max(0,timerLeft)); }
+function stopTimer(){ if(timerInt)clearInterval(timerInt); timerInt=null; document.getElementById("timerBox").classList.remove("show"); }
+function beep(){ try{ const a=new (window.AudioContext||window.webkitAudioContext)(); const o=a.createOscillator(); const g=a.createGain(); o.connect(g); g.connect(a.destination); o.frequency.value=880; o.start(); g.gain.setValueAtTime(.3,a.currentTime); g.gain.exponentialRampToValueAtTime(.001,a.currentTime+.5); o.stop(a.currentTime+.5);}catch(e){} }
+
+/* ---------- UTIL ---------- */
+function fmtSec(s){ const m=Math.floor(s/60), x=s%60; return m+":"+String(x).padStart(2,"0"); }
+function typeLabel(t){ return {lift:"Strength & Power",skill:"Skill",cond:"Energy System",mob:"Movement Prep",team:"Team",recov:"Regeneration",pillar:"Pillar Prep",plyo:"Plyometrics",mb:"Medicine Ball",speed:"Speed"}[t]||t; }
+function benchmarkBest(name){
+  let best=null, latest=null, latestDate=null;
+  Object.keys(DB.logs).sort().forEach(d=>{
+    const lg=DB.logs[d]; const pl=planForDate(d); if(!pl||!pl.dayTpl) return;
+    pl.dayTpl.blocks.forEach((blk,bi)=>blk.items.forEach((it,ii)=>{
+      if(it.ex===name){ const w=lg.weights[checkId(bi,ii)];
+        if(w!=null&&w!==""){ const n=Number(w); if(best==null||n>best) best=n; latest=n; latestDate=d; } }
+    }));
+  });
+  return {best, latest, latestDate};
+}
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function prettyDate(d){ return new Date(d+"T00:00:00").toLocaleDateString(undefined,{weekday:"long",year:"numeric",month:"short",day:"numeric"}); }
+let toastT=null;
+function toast(msg){ const el=document.getElementById("toast"); el.textContent=msg; el.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove("show"),2200); }
+
+/* ---------- INIT ---------- */
+document.getElementById("nav").addEventListener("click",e=>{ if(e.target.dataset.tab) goTab(e.target.dataset.tab); });
+window.addEventListener("resize",()=>{ if(currentTab==="history") drawHistoryCharts(); });
+render();
+</script>
+</body>
+</html>
