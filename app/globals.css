@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #0f1419;
+  --panel: #1a2129;
+  --panel2: #222c37;
+  --border: #2c3947;
+  --accent: #4cc2ff;
+  --accent2: #7c5cff;
+  --good: #3fb950;
+  --warn: #d29922;
+  --bad: #f85149;
+  --muted: #8a99a8;
+  --txt: #e6edf3;
+}
+
+html, body {
+  background-color: var(--bg);
+  color: var(--txt);
+  -webkit-font-smoothing: antialiased;
+}
+
+input, select, textarea {
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  color: var(--txt);
+  border-radius: 0.625rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  width: 100%;
+  font-family: inherit;
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+textarea {
+  resize: vertical;
+  min-height: 70px;
+}
+
+input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--good);
+  cursor: pointer;
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--panel); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
