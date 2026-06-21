@@ -5,43 +5,59 @@ import { usePathname } from "next/navigation";
 import { clsx } from "clsx";
 import { useTraining } from "@/lib/context";
 import { activeCycle, planForDate, todayISO } from "@/lib/store";
+import type { SyncStatus } from "@/lib/context";
 
 const navItems = [
-  { href: "/training",         label: "Today" },
-  { href: "/training/program", label: "Program" },
-  { href: "/training/game",    label: "Game Day" },
-  { href: "/training/history", label: "History" },
-  { href: "/training/settings",label: "Settings" },
+  { href: "/training",          label: "Today" },
+  { href: "/training/program",  label: "Program" },
+  { href: "/training/game",     label: "Game Day" },
+  { href: "/training/history",  label: "History" },
+  { href: "/training/settings", label: "Settings" },
 ];
 
-// Future modules go here:
-// { href: "/nutrition", label: "Nutrition" },
-// { href: "/journal",   label: "Journal" },
+const syncDot: Record<SyncStatus, { color: string; label: string }> = {
+  idle:    { color: "bg-muted",  label: "Not synced" },
+  syncing: { color: "bg-warn animate-pulse", label: "Syncing…" },
+  synced:  { color: "bg-good",  label: "Synced" },
+  error:   { color: "bg-bad",   label: "Sync error" },
+  offline: { color: "bg-muted", label: "Offline / no DB" },
+};
 
 export function Nav() {
   const pathname = usePathname();
-  const { db } = useTraining();
+  const { db, syncStatus } = useTraining();
   const cycle = activeCycle(db);
   const plan = cycle ? planForDate(db, todayISO()) : null;
+  const dot = syncDot[syncStatus];
 
   return (
     <header className="sticky top-0 z-20 border-b border-border bg-bg/90 backdrop-blur">
       <div className="max-w-5xl mx-auto px-4">
-        <div className="flex items-center gap-3 py-3">
+        <div className="flex items-center gap-3 py-3 flex-wrap">
           <div>
             <div className="font-bold text-base">🥍 Personal OS</div>
-            <div className="text-xs text-muted">Training · Local</div>
+            <div className="text-xs text-muted">Training Tracker</div>
           </div>
+
+          {/* Sync indicator */}
+          <div className="flex items-center gap-1.5" title={dot.label}>
+            <div className={clsx("w-2 h-2 rounded-full", dot.color)} />
+            <span className="text-xs text-muted hidden sm:block">{dot.label}</span>
+          </div>
+
+          {/* Cycle pill */}
           <div className="ml-auto">
             {cycle && plan && !plan.before ? (
               <span className="text-xs bg-panel2 border border-border rounded-full px-3 py-1.5 text-muted">
                 <span className="text-txt font-semibold">{cycle.name}</span>
-                {!plan.before && "weekNum" in plan && (
+                {"weekNum" in plan && (
                   <> · Wk {plan.weekNum}/{cycle.weeks} · {plan.dayTpl.day}</>
                 )}
               </span>
             ) : (
-              <span className="text-xs text-muted">No cycle — go to Settings</span>
+              <Link href="/training/settings" className="text-xs text-muted hover:text-txt transition-colors">
+                No cycle — Settings →
+              </Link>
             )}
           </div>
         </div>

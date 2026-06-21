@@ -6,7 +6,7 @@ import { createCycle, todayISO } from "@/lib/store";
 import { Panel } from "@/components/ui/panel";
 
 export default function SettingsPage() {
-  const { db, updateDB } = useTraining();
+  const { db, updateDB, syncStatus, forcePull, forcePush } = useTraining();
   const p = db.program;
   const [toast, setToast] = useState("");
 
@@ -179,10 +179,50 @@ export default function SettingsPage() {
         />
       </Panel>
 
+      {/* Sync / Database */}
+      <Panel>
+        <h2 className="text-lg font-bold mb-2">Cloud Sync — Vercel Postgres</h2>
+        <p className="text-muted text-sm mb-4">
+          Status: <span className={syncStatus === "synced" ? "text-good" : syncStatus === "offline" ? "text-muted" : "text-warn"}>
+            {syncStatus === "synced" ? "✓ Synced" : syncStatus === "syncing" ? "Syncing…" : syncStatus === "offline" ? "Offline / DB not set up" : syncStatus}
+          </span>
+        </p>
+
+        <div className="bg-panel2 border-l-4 border-accent text-sm p-3 rounded mb-4">
+          <strong>First-time setup:</strong> After connecting Vercel Postgres in the Vercel dashboard,
+          click <em>Initialise Database</em> once to create the tables, then <em>Push to Cloud</em>
+          to upload your local data.
+        </div>
+
+        <div className="flex gap-3 flex-wrap mb-2">
+          <button
+            onClick={async () => {
+              const r = await fetch("/api/db", { method: "POST" });
+              const j = await r.json();
+              showToast(j.ok ? "Database tables created!" : ("Error: " + j.error));
+            }}
+            className="px-4 py-2 text-sm rounded-xl bg-panel2 border border-border hover:border-accent transition-colors">
+            🗄 Initialise Database
+          </button>
+          <button onClick={() => { forcePush(); showToast("Pushing to cloud…"); }}
+            className="px-4 py-2 text-sm rounded-xl bg-accent text-bg font-bold hover:brightness-110 transition">
+            ⬆ Push to Cloud
+          </button>
+          <button onClick={() => { forcePull(); showToast("Pulling from cloud…"); }}
+            className="px-4 py-2 text-sm rounded-xl bg-panel2 border border-border hover:border-accent transition-colors">
+            ⬇ Pull from Cloud
+          </button>
+          <a href="/api/auth" onClick={async (e) => { e.preventDefault(); await fetch("/api/auth", { method: "DELETE" }); window.location.href = "/login"; }}
+            className="px-4 py-2 text-sm rounded-xl bg-panel2 border border-border text-muted hover:text-txt cursor-pointer transition-colors">
+            Sign out
+          </a>
+        </div>
+      </Panel>
+
       {/* Data management */}
       <Panel>
-        <h2 className="text-lg font-bold mb-2">Data</h2>
-        <p className="text-muted text-sm mb-4">All data is stored in this browser (localStorage). Export regularly as a backup.</p>
+        <h2 className="text-lg font-bold mb-2">Local Data</h2>
+        <p className="text-muted text-sm mb-4">Export a JSON backup of everything stored locally.</p>
         <div className="flex gap-3 flex-wrap">
           <button onClick={exportData}
             className="px-4 py-2 text-sm rounded-xl bg-panel2 border border-border hover:border-accent transition-colors">
